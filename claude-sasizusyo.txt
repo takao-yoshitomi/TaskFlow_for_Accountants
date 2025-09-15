@@ -1,0 +1,72 @@
+🤖 Gemini CLI向け：記帳依頼・タスク管理アプリ開発 指図書 (最終決定版)
+プロジェクト概要
+プロジェクト名: TaskFlow for Accountants (スタンドアロン開発版)
+目的: 税理士事務所のタスク管理業務を、データに基づいた効率的なプロセスへと変革する。
+開発アプローチ: 稼働中の「事業者管理アプリ」のクローン環境で開発を進める。**ただし、既存コードへの影響を避けるため、各機能は完全にスクラッチで開発し、共通部品のみを再利用する方針に転換した。**
+Step 1: 開発環境の構築とデータベース設計
+Supabaseプロジェクトの準備:
+稼働中の「事業者管理アプリ」のSupabaseプロジェクトのスキーマ（テーブル構造、RLSポリシー等）をエクスポートする。
+新しいSupabaseプロジェクトを作成し、エクスポートしたスキーマをインポートして、クローン環境を構築せよ。
+開発に必要なサンプルデータとして、staffsテーブルに3名分、clientsテーブルに5社分のダミーデータを投入すること。
+データベーススキーマの拡張:
+クローンしたプロジェクトに対し、以下のSQLをマイグレーションファイルとして実行し、タスク管理機能の基盤となるテーブル群を作成せよ。
+SQL-- タスクの優先度を定義するENUM型を作成CREATE TYPE task_priority AS ENUM ('高', '中', '低'); -- タスク管理のコアとなるテーブルCREATE TABLE tasks ( id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL, staff_id INTEGER REFERENCES staffs(id), -- 依頼者 assignee_id INTEGER REFERENCES staffs(id), -- 受任者 task_title TEXT NOT NULL, task_description TEXT, reference_url TEXT, estimated_time_hours NUMERIC(5, 2), -- 見積もり時間 actual_time_hours NUMERIC(5, 2), -- 実作業時間 due_date DATE, status TEXT NOT NULL DEFAULT '依頼中' CHECK (status IN ('依頼中', '作業中', '作業完了', '確認完了')), priority task_priority DEFAULT '中', -- 優先度 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); -- 繰り返し発生するタスクのテンプレートを管理するテーブルCREATE TABLE task_templates ( id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, template_name TEXT NOT NULL UNIQUE, task_title TEXT NOT NULL, task_description TEXT, estimated_time_hours NUMERIC(5, 2), priority task_priority DEFAULT '中', is_routine BOOLEAN DEFAULT FALSE, routine_day INT -- 毎月何日にタスクを生成するか (例: 5) ); -- タスクごとのコミュニケーション履歴を記録するテーブルCREATE TABLE task_comments ( id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, task_id BIGINT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, user_id UUID NOT NULL REFERENCES auth.users(id), -- Supabase認証ユーザーID comment TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() ); -- 各テーブルにRow Level Security (RLS) ポリシーを設定ALTER TABLE tasks ENABLE ROW LEVEL SECURITY; CREATE POLICY "Authenticated users can manage tasks" ON tasks FOR ALL USING (auth.role() = 'authenticated'); ALTER TABLE task_templates ENABLE ROW LEVEL SECURITY; CREATE POLICY "Auth users can manage task templates" ON task_templates FOR ALL USING (auth.role() = 'authenticated'); ALTER TABLE task_comments ENABLE ROW LEVEL SECURITY; CREATE POLICY "Users can manage comments related to their tasks" ON task_comments FOR ALL USING ( auth.uid() = user_id OR EXISTS ( SELECT 1 FROM tasks t JOIN staffs s ON s.email = (SELECT u.email FROM auth.users u WHERE u.id = auth.uid()) WHERE t.id = task_comments.task_id AND (t.staff_id = s.id OR t.assignee_id = s.id) ) );
+
+-- 追加：完了日時と確認日時の列
+ALTER TABLE public.tasks
+ADD COLUMN completed_at TIMESTAMPTZ,
+ADD COLUMN confirmed_at TIMESTAMPTZ;
+COMMENT ON COLUMN public.tasks.completed_at IS 'タスクが完了した日時';
+COMMENT ON COLUMN public.tasks.confirmed_at IS 'タスクが確認完了した日時';
+
+Step 2: 基本ビュー (テーブル形式) とコア機能の実装
+タスク一覧ページの作成 (tasks.html):
+このページを本アプリのデフォルト画面として構築する。
+**既存アプリのUIコンポーネントは流用せず、完全にスクラッチで実装する。ただし、共通のスタイルや認証機能は再利用する。**
+表示項目: 優先度, タスク名, URL添付, 事業者名, 依頼者, 受任者, 依頼日, 期限, 完了日, 確認日, ステータス。
+ステータス表示: statusの値に応じて、視覚的に分かりやすい色付きのバッジで表示すること。（例: 依頼中=青, 作業中=黄, 作業完了=緑, 確認完了=灰）
+テーブルのインタラクション機能:
+ソート: 各列のヘッダーをクリックすると、その列を基準に昇順・降順で並び替えられるようにする。
+フィルター: テーブル上部にドロップダウンを設置し、担当者(受任者), 事業者, ステータス, 優先度で表示するタスクを絞り込めるようにする。
+検索: リアルタイムでタスク名と事業者名をキーワード検索できる入力欄を設ける。**実装済み（タスク名・事業者名）**
+タスク操作機能:
+追加/編集モーダル: テーブル上部の「新規タスク追加」ボタンから、タスクを登録・編集するためのモーダルウィンドウを開く。モーダルは既存アプリのものを流用する。
+一括操作: テーブルの各行にチェックボックスを設け、複数のタスクを選択して「担当者を一括変更」「ステータスを一括更新」などの操作を行えるようにする。
+Step 3: 管理者向けダッシュボードの実装
+ダッシュボードページの作成 (dashboard.html):
+事務所全体のタスク状況を俯瞰的に把握するためのサマリーページを構築する。
+Chart.jsなどのライブラリを導入し、以下の要素を視覚的に表示せよ。
+タスクステータス比率: 全タスクのステータス（依頼中, 作業中...）の構成比を円グラフで表示。
+担当者別タスク状況: 各担当者が抱えるタスク数と見積もり時間の合計を棒グラフで表示。
+要注意タスクリスト: 「期限切れのタスク」と「本日が期限のタスク」をリスト形式で表示。
+Step 4: 多様なビュー (ボード/カレンダー/ガント) の実装
+ビュー切り替えUIの設置:
+tasks.htmlの上部に「テーブル」「ボード」「カレンダー」「ガント」を切り替えるためのタブまたはボタングループを設置する。
+各ビューの実装:
+ボードビュー:
+依頼中 作業中 作業完了 確認完了の4つのカラムを持つカンバンボードを実装する。
+タスクをカードとして表示し、ドラッグ＆ドロップでカラム間を移動させることでステータスが更新されるようにする。
+カレンダービュー:
+FullCalendar.js 等のライブラリを導入し、due_date(期限)を基準にタスクを月/週ビューで表示する。
+ガントチャートビュー:
+frappe-gantt 等のライブラリを導入し、事業者ごと、または大規模な作業単位でタスクのタイムラインを可視化する。
+Step 5: コラボレーションと効率化機能
+コメント機能の実装:
+タスク詳細モーダル内に、タイムライン形式でコメントを投稿・閲覧できるエリアを設ける。
+投稿されたコメントはtask_commentsテーブルに保存し、タスクに関わるコミュニケーション履歴として活用する。
+タイムトラッキング機能の実装:
+タスクのステータスを「作業中」に変更すると、UI上にタイマーが表示され、自動で時間の計測を開始する。
+「作業完了」ステータスに変更する際に計測された時間をactual_time_hoursに記録する。
+テンプレートと自動化機能:
+テンプレート管理: 管理者向けに、task_templatesテーブルのCRUD操作（追加・編集・削除）を行うための設定画面を設ける。
+ルーティンタスク自動生成: Supabase Edge Functionと**pg_cron**を組み合わせ、毎月決まった日にtask_templatesから定型タスクを自動生成する。
+Step 6: 最終調整と将来の拡張計画
+レスポンシブ対応とデプロイ:
+全ての画面がスマートフォンやタブレットでも快適に利用できるよう、レスポンシブデザインを適用する。
+開発が完了したアプリケーションをVercelにデプロイする。
+連携機能の準備:
+本アプリが安定稼働した後、稼働中の「事業者管理アプリ」とのAPI連携を実装する。その準備として、ステータス変更時に外部APIを呼び出すためのダミー関数を実装しておく。
+AIアシスト機能 (フェーズ2):
+コア機能の完成後、以下のAI機能を実装するフェーズを設ける。
+タスクの自動割り振り推薦: 新規タスク作成時に、最適な担当者をGemini APIが推薦する。
+報告書の下書き生成: 完了タスクを基に、月次報告書のドラフトをGemini APIが自動生成する。
