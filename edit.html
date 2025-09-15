@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>顧客情報編集</title>
+    <!-- Favicon with cache busting and multiple formats -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=1">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico?v=1">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico?v=1">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="custom-dropdown.css">
+    <link rel="stylesheet" href="toast.css">
+</head>
+<body>
+    <!-- ユーザー情報表示エリア -->
+    <div id="user-info" style="display:none; position:fixed; top:15px; right:15px; background:white; padding:12px 16px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); z-index:1000; border: 1px solid #e1e5e9;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img id="user-avatar" src="" alt="" style="width: 32px; height: 32px; border-radius: 50%; display: none;">
+            <div>
+                <div id="user-name" style="font-weight: bold; font-size: 14px; color: #333;"></div>
+                <div id="user-email" style="font-size: 12px; color: #666;"></div>
+            </div>
+            <button id="signout-button" style="background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">
+                ログアウト
+            </button>
+        </div>
+    </div>
+    <div class="modern-container">
+        <!-- Modern Header Section -->
+        <div class="modern-header">
+            <div class="header-content">
+                <div class="header-icon">🏢</div>
+                <div class="header-text">
+                    <h1>顧客情報編集</h1>
+                    <p class="header-description">顧問先の基本情報を編集・管理できます</p>
+                </div>
+                <div class="header-nav">
+                    <a href="index.html" class="modern-back-btn">
+                        <span class="back-icon">←</span>
+                        メイン画面に戻る
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client Status Display -->
+        <div id="client-status-card" class="status-card" style="display: none;">
+            <div class="status-info">
+                <div class="status-icon">📋</div>
+                <div class="status-details">
+                    <h3 id="client-name-display">-</h3>
+                    <div id="inactive-status-badge" class="status-badge inactive-badge" style="display: none;">
+                        <span class="badge-icon">⚠️</span>
+                        関与終了
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modern Edit Form -->
+        <div class="modern-form-container">
+            <div id="edit-form" class="modern-edit-form">
+                
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>基本情報</h2>
+                        <div class="section-icon">ℹ️</div>
+                    </div>
+                    
+                    <div class="modern-form-group">
+                        <label for="client-no" class="modern-label">
+                            <span class="label-icon">#</span>
+                            <span class="label-text">No.</span>
+                        </label>
+                        <input type="text" id="client-no" name="client-no" class="modern-input">
+                    </div>
+
+                    <div class="modern-form-group">
+                        <label for="client-name" class="modern-label">
+                            <span class="label-icon">🏢</span>
+                            <span class="label-text">事業所名</span>
+                        </label>
+                        <input type="text" id="client-name" name="client-name" class="modern-input">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="section-header">
+                        <h2>管理設定</h2>
+                        <div class="section-icon">⚙️</div>
+                    </div>
+                    
+                    <div class="modern-form-group">
+                        <label for="staff-select" class="modern-label">
+                            <span class="label-icon">👤</span>
+                            <span class="label-text">担当者</span>
+                        </label>
+                        <div class="modern-select-wrapper">
+                            <div class="custom-select-wrapper">
+                                <div class="custom-select-trigger modern-select-trigger"></div>
+                                <div class="custom-options"></div>
+                                <select id="staff-select" name="staff-select" class="custom-select-target" style="display: none;">
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modern-form-group">
+                        <label for="fiscal-month" class="modern-label">
+                            <span class="label-icon">📅</span>
+                            <span class="label-text">決算月</span>
+                        </label>
+                        <div class="modern-select-wrapper">
+                            <div class="custom-select-wrapper">
+                                <div class="custom-select-trigger modern-select-trigger"></div>
+                                <div class="custom-options"></div>
+                                <select id="fiscal-month" name="fiscal-month" class="custom-select-target" style="display: none;">
+                                    <option value="1">1月</option>
+                                    <option value="2">2月</option>
+                                    <option value="3">3月</option>
+                                    <option value="4">4月</option>
+                                    <option value="5">5月</option>
+                                    <option value="6">6月</option>
+                                    <option value="7">7月</option>
+                                    <option value="8">8月</option>
+                                    <option value="9">9月</option>
+                                    <option value="10">10月</option>
+                                    <option value="11">11月</option>
+                                    <option value="12">12月</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modern-form-group">
+                        <label for="accounting-method" class="modern-label">
+                            <span class="label-icon">📊</span>
+                            <span class="label-text">経理方式</span>
+                        </label>
+                        <div class="modern-select-wrapper">
+                            <div class="custom-select-wrapper">
+                                <div class="custom-select-trigger modern-select-trigger"></div>
+                                <div class="custom-options"></div>
+                                <select id="accounting-method" name="accounting-method" class="custom-select-target" style="display: none;">
+                                    <option value="記帳代行">記帳代行</option>
+                                    <option value="自計">自計</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-actions">
+                    <button id="save-button" class="modern-save-btn">
+                        <span class="btn-icon">💾</span>
+                        <span class="btn-text">保存</span>
+                    </button>
+                </div>
+
+                <!-- Danger Zone（編集モードでのみ表示） -->
+                <div class="danger-zone" style="display: none;">
+                    <div class="danger-header">
+                        <h2>危険な操作</h2>
+                        <div class="danger-icon">⚠️</div>
+                    </div>
+                    <div class="danger-actions">
+                        <button id="reactivate-button" type="button" class="modern-reactivate-btn" style="display: none;">
+                            <span class="btn-icon">🔄</span>
+                            <span class="btn-text">復活</span>
+                        </button>
+                        <button id="inactive-button" type="button" class="modern-inactive-btn">
+                            <span class="btn-icon">⏸️</span>
+                            <span class="btn-text">関与終了</span>
+                        </button>
+                        <button id="delete-button" type="button" class="modern-delete-btn">
+                            <span class="btn-icon">🗑️</span>
+                            <span class="btn-text">削除</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 削除確認モーダル -->
+    <div id="delete-modal" class="modal modern-modal" style="display: none;">
+        <div class="modal-content modern-modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">❓</div>
+                <h3 id="modal-title">確認</h3>
+                <p id="modal-message" class="modal-description">この操作を実行しますか？</p>
+            </div>
+            <div class="modal-info-card">
+                <div class="info-header">
+                    <div class="info-icon">🏢</div>
+                    <span>対象の顧問先</span>
+                </div>
+                <div class="info-details">
+                    <p><strong>No.:</strong> <span id="modal-client-no">-</span></p>
+                    <p><strong>事業者名:</strong> <span id="modal-client-name">-</span></p>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button id="modal-cancel" type="button" class="modern-cancel-btn">
+                    <span class="btn-icon">❌</span>
+                    <span class="btn-text">キャンセル</span>
+                </button>
+                <button id="modal-confirm" type="button" class="modern-confirm-btn">
+                    <span class="btn-icon">✅</span>
+                    <span class="btn-text">実行</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legacy loading indicator - now replaced with toast notifications -->
+    <div id="loading-indicator" style="display: none !important;">
+        <div style="text-align: center;">
+            <div class="loading-spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+            <div>処理中...</div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #connection-status {
+            font-weight: bold;
+        }
+        
+        #connection-status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        #connection-status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        #connection-status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .inactive-badge {
+            background-color: #dc3545;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .danger-zone {
+            border-top: 2px solid #dc3545 !important;
+        }
+
+        .danger-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .inactive-btn, .delete-btn, .reactivate-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .inactive-btn {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .reactivate-btn {
+            background-color: #198754 !important;
+            color: white !important;
+            font-weight: 600 !important;
+            opacity: 1 !important;
+            filter: none !important;
+        }
+
+        .inactive-btn:hover {
+            background-color: #e0a800;
+        }
+
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+
+        .reactivate-btn:hover {
+            background-color: #146c43;
+        }
+
+        .modal-client-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+
+        .cancel-btn, .confirm-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+
+        .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .confirm-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .confirm-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+    
+    <script src="config.js"></script>
+    <script src="custom-dropdown.js"></script>
+    <script src="toast.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="edit.js"></script>
+
+    <!-- Copyright Notice -->
+    <div style="position: fixed; bottom: 10px; right: 15px; opacity: 0.6; font-size: 11px; color: #666; z-index: 100; pointer-events: none;">
+        ©Mori-hiroki tax accountant's office
+    </div>
+</body>
+</html>
