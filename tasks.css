@@ -1,0 +1,35 @@
+
+/* タスク一覧ページ専用スタイル */
+
+/* ステータスバッジのスタイル */
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    min-width: 70px;
+}
+
+.status-requested {
+    background-color: #007bff; /* 青 */
+}
+
+.status-inprogress {
+    background-color: #ffc107; /* 黄 */
+    color: #212529; /* 黄色の背景には黒い文字の方が見やすい */
+}
+
+.status-done {
+    background-color: #28a745; /* 緑 */
+}
+
+.status-confirmed {
+    background-color: #6c757d; /* 灰 */
+}
+
+.status-default {
+    background-color: #6c757d; /* 灰 */
+}

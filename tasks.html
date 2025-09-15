@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - タスク一覧</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1">
+    
+    <!-- 共通スタイルと、このページ専用のスタイルを読み込む -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="tasks.css">
+
+</head>
+<body>
+
+    <!-- 既存アプリから共通のメニュー部分を配置 -->
+    <div id="other-apps-accordion" class="accordion-container" style="position: absolute; right: 300px; top: 25px; z-index: 1000;">
+        <button class="accordion-header">
+            <span>🔗 その他アプリ</span>
+            <span class="accordion-icon">▼</span>
+        </button>
+        <div class="accordion-content" style="display: none;">
+            <div class="accordion-buttons-container">
+                <button id="url-settings-button" class="accordion-button">URL設定</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="management-accordion" class="accordion-container" style="position: absolute; right: 20px; top: 25px; z-index: 1000;">
+        <button class="accordion-header">
+            <span>🎛️ 管理メニュー</span>
+            <span class="accordion-icon">▼</span>
+        </button>
+        <div class="accordion-content" style="display: none;">
+            <div class="accordion-buttons-container">
+                <div class="user-info-section">
+                    <div class="user-info-display">
+                        <img id="user-avatar-menu" src="" alt="" class="user-avatar-menu">
+                        <div class="user-details">
+                            <div id="user-name-menu" class="user-name-menu"></div>
+                            <div id="user-email-menu" class="user-email-menu"></div>
+                        </div>
+                    </div>
+                    <div class="logout-button-container">
+                        <button id="signout-button-menu" class="logout-button-small">ログアウト</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="container">
+        <h1>タスク一覧</h1>
+
+        <div class="controls">
+            <input type="text" id="search-input" placeholder="タスク名または事業者名で検索">
+            <!-- フィルター機能は後ほど実装 -->
+        </div>
+
+        <div class="table-container">
+            <table id="tasks-table">
+                <thead>
+                    <tr>
+                        <th>優先度</th>
+                        <th>タスク名</th>
+                        <th>事業者名</th>
+                        <th>依頼者</th>
+                        <th>受任者</th>
+                        <th>期限</th>
+                        <th>ステータス</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JavaScriptによってタスクデータがここに挿入されます -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ログイン認証モーダル (共通) -->
+    <div id="auth-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; backdrop-filter: blur(5px);">
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:3rem; border-radius:12px; text-align:center; min-width:400px; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+            <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+            <h2 style="margin-bottom: 10px; color: #333;">TaskFlow for Accountants</h2>
+            <p style="color: #666; margin-bottom: 30px; line-height: 1.5;">
+                このアプリを使用するには<br>
+                Googleアカウントでログインが必要です
+            </p>
+            <button id="signin-button" style="background: linear-gradient(45deg, #4285f4, #34a853); color:white; border:none; padding:15px 30px; border-radius:8px; cursor:pointer; font-size:16px; font-weight:bold; box-shadow:0 4px 15px rgba(66,133,244,0.3); transition:transform 0.2s;">
+                <span style="margin-right: 10px;">🚀</span>
+                Googleでログイン
+            </button>
+        </div>
+    </div>
+
+    <!-- 必要なJavaScriptファイルを読み込む -->
+    <script src="config.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="supabase-client.js"></script>
+    <script type="module" src="tasks.js"></script>
+
+</body>
+</html>
