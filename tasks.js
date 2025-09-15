@@ -1,4 +1,3 @@
-
 // supabase-client.jsからSupabaseクライアントをインポート
 import { supabase } from './supabase-client.js';
 
@@ -71,10 +70,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 検索キーワードがある場合、フィルターを追加
             if (searchTerm) {
-                // clients.name は直接 or に含められないため、別途 clients テーブルを検索する必要があるが、
-                // まずは task_title のみで検索を実装する。
-                // TODO: 事業者名での検索も後で対応する
-                query = query.ilike('task_title', `%${searchTerm}%`);
+                // 1. 事業者名で検索し、一致するclient_idのリストを取得
+                const { data: clientIds, error: clientError } = await supabase
+                    .from('clients')
+                    .select('id')
+                    .ilike('name', `%${searchTerm}%`);
+                
+                if (clientError) throw clientError;
+                
+                const matchingClientIds = clientIds.map(c => c.id);
+
+                // 2. タスク名での検索と、事業者名でヒットしたclient_idでの検索をOR条件で組み合わせる
+                const orConditions = [
+                    `task_title.ilike.%${searchTerm}%`,
+                ];
+                if (matchingClientIds.length > 0) {
+                    orConditions.push(`client_id.in.(${matchingClientIds.join(',')})`);
+                }
+                query = query.or(orConditions.join(','));
             }
 
             const { data: tasks, error } = await query.order('created_at', { ascending: false });
