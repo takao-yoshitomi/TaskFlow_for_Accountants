@@ -1,7 +1,7 @@
 {
-  "name": "jigyosya-kanri-app",
+  "name": "taskflow-for-accountants",
   "version": "1.0.0",
-  "description": "事業者管理アプリケーション - Supabase版",
+  "description": "記帳依頼・タスク管理アプリ (TaskFlow for Accountants)",
   "main": "index.html",
   "scripts": {
     "build": "node build.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/your-repo.git"
+    "url": "git+https://github.com/takao-yoshitomi/TaskFlow_for_Accountants.git"
   },
   "author": "",
   "license": "MIT",
