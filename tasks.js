@@ -1,3 +1,4 @@
+
 // supabase-client.jsからSupabaseクライアントをインポート
 import { supabase } from './supabase-client.js';
 
@@ -5,10 +6,10 @@ import { supabase } from './supabase-client.js';
 document.addEventListener('DOMContentLoaded', async () => {
     // --- DOM要素の取得 ---
     const tasksTableBody = document.querySelector('#tasks-table tbody');
+    const searchInput = document.getElementById('search-input');
     const signinButton = document.getElementById('signin-button');
     const signoutButton = document.getElementById('signout-button-menu');
     const authModal = document.getElementById('auth-modal');
-    const userInfoDiv = document.getElementById('user-info-menu');
     const userNameSpan = document.getElementById('user-name-menu');
     const userEmailSpan = document.getElementById('user-email-menu');
     const userAvatarImg = document.getElementById('user-avatar-menu');
@@ -24,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (session && session.user) {
             authModal.style.display = 'none';
             displayUserInfo(session.user);
-            loadTasks();
+            initializePage(); // ページ初期化関数を呼び出し
         } else {
             authModal.style.display = 'flex';
         }
@@ -52,21 +53,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- メインのデータ処理 ---
 
-    async function loadTasks() {
+    // タスクデータを取得してテーブルに表示するメイン関数
+    async function loadTasks(searchTerm = '') {
         if (!tasksTableBody) return;
 
         try {
             tasksTableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px;">読み込み中...</td></tr>`;
 
-            const { data: tasks, error } = await supabase
+            let query = supabase
                 .from('tasks')
                 .select(`
                     *,
                     clients (name),
                     staff_requester:staffs!tasks_staff_id_fkey (name),
                     staff_assignee:staffs!tasks_assignee_id_fkey (name)
-                `)
-                .order('created_at', { ascending: false });
+                `);
+
+            // 検索キーワードがある場合、フィルターを追加
+            if (searchTerm) {
+                // clients.name は直接 or に含められないため、別途 clients テーブルを検索する必要があるが、
+                // まずは task_title のみで検索を実装する。
+                // TODO: 事業者名での検索も後で対応する
+                query = query.ilike('task_title', `%${searchTerm}%`);
+            }
+
+            const { data: tasks, error } = await query.order('created_at', { ascending: false });
 
             if (error) throw error;
 
@@ -78,6 +89,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // テーブルにタスクデータを描画する関数
     function renderTasks(tasks) {
         tasksTableBody.innerHTML = '';
 
@@ -89,11 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tasks.forEach(task => {
             const tr = document.createElement('tr');
             const statusBadge = getStatusBadge(task.status);
-
-            // URLが有効な場合にのみリンクを生成
-            const urlLink = task.reference_url 
-                ? `<a href="${task.reference_url}" target="_blank" rel="noopener noreferrer">リンク</a>` 
-                : 'ー';
+            const urlLink = task.reference_url ? `<a href="${task.reference_url}" target="_blank" rel="noopener noreferrer">リンク</a>` : 'ー';
 
             tr.innerHTML = `
                 <td>${escapeHTML(task.priority) || 'ー'}</td>
@@ -112,6 +120,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // --- ヘルパー関数 ---
+
     function getStatusBadge(status) {
         let className = 'status-default';
         switch (status) {
@@ -123,17 +133,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `<span class="status-badge ${className}">${escapeHTML(status)}</span>`;
     }
 
-    // 日付を YYYY-MM-DD 形式にフォーマットするヘルパー関数
     function formatDate(dateString) {
         if (!dateString) return 'ー';
         try {
             const date = new Date(dateString);
-            // toISOString() はUTC基準なので、タイムゾーンのオフセットを考慮して調整
             const userTimezoneOffset = date.getTimezoneOffset() * 60000;
             const adjustedDate = new Date(date.getTime() - userTimezoneOffset);
             return adjustedDate.toISOString().split('T')[0];
         } catch (e) {
-            return dateString; // パースに失敗した場合は元の文字列を返す
+            return dateString;
         }
     }
 
@@ -147,6 +155,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             .replace(/'/g, '&#039;');
     }
 
-    // --- 初期化処理 ---
+    // --- イベントリスナーと初期化処理 ---
+
+    function initializePage() {
+        // 初期タスク読み込み
+        loadTasks();
+
+        // 検索入力のイベントリスナー
+        let debounceTimer;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const searchTerm = searchInput.value.trim();
+                loadTasks(searchTerm);
+            }, 300); // 300msのデバウンス
+        });
+    }
+
     checkUserSession();
 });
