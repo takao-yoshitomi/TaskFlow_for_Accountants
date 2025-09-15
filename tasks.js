@@ -1,4 +1,3 @@
-
 // supabase-client.jsからSupabaseクライアントをインポート
 import { supabase } from './supabase-client.js';
 
@@ -23,12 +22,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (session && session.user) {
-            // ユーザーがログインしている場合
             authModal.style.display = 'none';
             displayUserInfo(session.user);
-            loadTasks(); // タスクを読み込む
+            loadTasks();
         } else {
-            // ユーザーがログインしていない場合
             authModal.style.display = 'flex';
         }
     };
@@ -50,17 +47,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     signoutButton.addEventListener('click', async () => {
         const { error } = await supabase.auth.signOut();
         if (error) console.error('ログアウトエラー', error);
-        else window.location.reload(); // ログアウト後にリロード
+        else window.location.reload();
     });
 
     // --- メインのデータ処理 ---
 
-    // タスクデータを取得してテーブルに表示するメイン関数
     async function loadTasks() {
         if (!tasksTableBody) return;
 
         try {
-            tasksTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">読み込み中...</td></tr>';
+            tasksTableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px;">読み込み中...</td></tr>`;
 
             const { data: tasks, error } = await supabase
                 .from('tasks')
@@ -72,24 +68,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 `)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                throw error;
-            }
+            if (error) throw error;
 
             renderTasks(tasks);
 
         } catch (e) {
             console.error('タスクの読み込みに失敗しました', e);
-            tasksTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px; color: red;">データの読み込みに失敗しました。</td></tr>';
+            tasksTableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px; color: red;">データの読み込みに失敗しました。</td></tr>`;
         }
     }
 
-    // テーブルにタスクデータを描画する関数
     function renderTasks(tasks) {
         tasksTableBody.innerHTML = '';
 
         if (tasks.length === 0) {
-            tasksTableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 20px;">表示するタスクがありません。</td></tr>';
+            tasksTableBody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding: 20px;">表示するタスクがありません。</td></tr>`;
             return;
         }
 
@@ -97,20 +90,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tr = document.createElement('tr');
             const statusBadge = getStatusBadge(task.status);
 
+            // URLが有効な場合にのみリンクを生成
+            const urlLink = task.reference_url 
+                ? `<a href="${task.reference_url}" target="_blank" rel="noopener noreferrer">リンク</a>` 
+                : 'ー';
+
             tr.innerHTML = `
                 <td>${escapeHTML(task.priority) || 'ー'}</td>
                 <td>${escapeHTML(task.task_title) || '名称未設定'}</td>
+                <td>${urlLink}</td>
                 <td>${escapeHTML(task.clients?.name) || '未割り当て'}</td>
                 <td>${escapeHTML(task.staff_requester?.name) || '不明'}</td>
                 <td>${escapeHTML(task.staff_assignee?.name) || '未担当'}</td>
-                <td>${task.due_date || '期限なし'}</td>
+                <td>${formatDate(task.created_at)}</td>
+                <td>${formatDate(task.due_date)}</td>
+                <td>${formatDate(task.completed_at)}</td>
+                <td>${formatDate(task.confirmed_at)}</td>
                 <td>${statusBadge}</td>
             `;
             tasksTableBody.appendChild(tr);
         });
     }
 
-    // ステータスバッジのHTMLを生成する関数
     function getStatusBadge(status) {
         let className = 'status-default';
         switch (status) {
@@ -122,7 +123,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         return `<span class="status-badge ${className}">${escapeHTML(status)}</span>`;
     }
 
-    // HTMLエスケープ関数 (XSS対策)
+    // 日付を YYYY-MM-DD 形式にフォーマットするヘルパー関数
+    function formatDate(dateString) {
+        if (!dateString) return 'ー';
+        try {
+            const date = new Date(dateString);
+            // toISOString() はUTC基準なので、タイムゾーンのオフセットを考慮して調整
+            const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+            const adjustedDate = new Date(date.getTime() - userTimezoneOffset);
+            return adjustedDate.toISOString().split('T')[0];
+        } catch (e) {
+            return dateString; // パースに失敗した場合は元の文字列を返す
+        }
+    }
+
     function escapeHTML(str) {
         if (str === null || str === undefined) return '';
         return str.toString()
